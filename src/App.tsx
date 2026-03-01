@@ -833,7 +833,7 @@ export default function App() {
         </div>
 
         {/* Global Actions: Save / Load / PNG */}
-        <div className="mt-auto pt-6 border-t border-slate-800 space-y-2">
+        <div className="mb-6 pb-6 border-b border-slate-800 flex gap-3 w-full">
           <input
             type="file"
             accept=".json"
@@ -843,37 +843,37 @@ export default function App() {
           />
           <button
             onClick={onSaveToServer}
-            className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-emerald-600/20 border border-emerald-500/50 hover:bg-emerald-600/30 transition-colors text-emerald-300 focus:outline-none"
+            className="flex-1 flex flex-col items-center justify-center py-3 px-2 rounded-xl bg-emerald-600/20 border border-emerald-500/50 hover:bg-emerald-600/30 transition-all text-emerald-300 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] focus:outline-none"
             title={getText('actions.saveDesc')}
           >
-            <Cloud size={16} className="mb-1" />
-            <span className="text-[9px] uppercase font-bold">{getText('actions.save')}</span>
+            <Cloud size={18} className="mb-1.5" />
+            <span className="text-[10px] uppercase font-bold">{getText('actions.save')}</span>
           </button>
-
-          <div className="w-[1px] bg-slate-700 mx-1"></div>
 
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-cyan-500/50 transition-colors text-slate-300 hover:text-cyan-300 focus:outline-none"
+            className="flex-1 flex flex-col items-center justify-center py-3 px-2 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-cyan-500/50 transition-all text-slate-300 hover:text-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] focus:outline-none"
             title={getText('actions.importDesc')}
           >
-            <UploadCloud size={16} className="mb-1" />
-            <span className="text-[9px] uppercase font-semibold">{getText('actions.import')}</span>
+            <UploadCloud size={18} className="mb-1.5" />
+            <span className="text-[10px] uppercase font-semibold">{getText('actions.import')}</span>
           </button>
+
           <button
             onClick={onExport}
-            className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-cyan-500/50 transition-colors text-slate-300 hover:text-cyan-300 focus:outline-none"
+            className="flex-1 flex flex-col items-center justify-center py-3 px-2 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-cyan-500/50 transition-all text-slate-300 hover:text-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.2)] focus:outline-none"
             title={getText('actions.exportDesc')}
           >
-            <DownloadCloud size={16} className="mb-1" />
-            <span className="text-[9px] uppercase font-semibold">{getText('actions.export')}</span>
+            <DownloadCloud size={18} className="mb-1.5" />
+            <span className="text-[10px] uppercase font-semibold">{getText('actions.export')}</span>
           </button>
+
           <button
             onClick={onDownloadImage}
-            className="flex-1 min-w-[50px] flex flex-col items-center justify-center p-2 rounded-lg bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-emerald-500/50 transition-colors text-slate-300 hover:text-emerald-300 focus:outline-none"
+            className="flex-1 flex flex-col items-center justify-center py-3 px-2 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 hover:border-emerald-500/50 transition-all text-slate-300 hover:text-emerald-300 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] focus:outline-none"
             title={getText('actions.screenshotDesc')}
           >
-            <Camera size={18} className="mb-1" />
+            <Camera size={18} className="mb-1.5" />
             <span className="text-[10px] uppercase font-semibold">{getText('actions.screenshot')}</span>
           </button>
         </div>
