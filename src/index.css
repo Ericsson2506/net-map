@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #0f172a;
+  /* slate-900 */
+  color: #f8fafc;
+  /* slate-50 */
+  overflow: hidden;
+}
+
+.edges-on-top .react-flow__edges {
+  z-index: 1000 !important;
+}
+
+.reverse-animation path.react-flow__edge-path {
+  animation-direction: reverse !important;
+}
+
+/* Removing default square background and area selection highlighting from React Flow */
+.react-flow__node-group,
+.react-flow__node-group.selected,
+.react-flow__node-group:focus,
+.react-flow__node-group:focus-visible {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  padding: 0 !important;
+  cursor: default !important;
+}
+
+.react-flow__node-group .custom-drag-handle {
+  cursor: grab !important;
+}
+
+.react-flow__node-group .custom-drag-handle:active {
+  cursor: grabbing !important;
+}
