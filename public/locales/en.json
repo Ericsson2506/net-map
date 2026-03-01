@@ -60,5 +60,7 @@
     "dev.isp": "Internet Provider (ISP)",
     "dev.laptop": "Laptop",
     "dev.nas": "NAS Storage",
+    "dev.camera": "IP Camera",
+    "dev.nvr": "Video NVR",
     "add.group": "Add Area (Building)"
 }

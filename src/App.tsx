@@ -12,6 +12,7 @@ import {
   type Edge,
   type Node,
   BackgroundVariant,
+  getNodesBounds,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -20,7 +21,7 @@ import DeviceNode from './components/DeviceNode';
 import GroupNode from './components/GroupNode';
 import DynamicEdge from './components/DynamicEdge';
 import PatchPanelNode from './components/PatchPanelNode';
-import { Plus, Server, Monitor, Info, ChevronDown, Shield, Printer, Router, Wifi, HardDrive, Database, Settings, Save, DownloadCloud, UploadCloud, Camera, Trash2, Activity, Cloud, Layers, Globe, Phone, ArrowRightLeft, Laptop, SquareDashed, Menu, X, GripHorizontal } from 'lucide-react';
+import { Plus, Server, Monitor, Info, ChevronDown, Shield, Printer, Router, Wifi, HardDrive, Database, Settings, Save, DownloadCloud, UploadCloud, Camera, Trash2, Activity, Cloud, Layers, Globe, Phone, ArrowRightLeft, Laptop, SquareDashed, Menu, X, GripHorizontal, Cctv, Video } from 'lucide-react';
 import { toPng } from 'html-to-image';
 
 const nodeTypes = {
@@ -54,6 +55,8 @@ const DEVICES = [
   { id: 'printer', nameKey: 'dev.printer', icon: Printer, color: 'text-amber-400', label: 'Drukarka', defaultPorts: 1 },
   { id: 'isp', nameKey: 'dev.isp', icon: Globe, color: 'text-indigo-400', label: 'ISP', defaultPorts: 1 },
   { id: 'nas', nameKey: 'dev.nas', icon: HardDrive, color: 'text-rose-400', label: 'NAS', defaultPorts: 1 },
+  { id: 'camera', nameKey: 'dev.camera', icon: Cctv, color: 'text-indigo-400', label: 'Kamera', defaultPorts: 1 },
+  { id: 'nvr', nameKey: 'dev.nvr', icon: Video, color: 'text-slate-400', label: 'NVR', defaultPorts: 1 },
 ];
 
 export default function App() {
@@ -76,6 +79,11 @@ export default function App() {
     targetNodeId?: string;
     vms?: { id: string; name: string; ip: string; isOnline?: boolean }[];
     deviceType?: string;
+    nodeType?: string;
+    ports?: number;
+    sfpPorts?: number;
+    fiberPorts?: number;
+    vlans?: Record<string, string>;
   } | null>(null);
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
@@ -84,6 +92,14 @@ export default function App() {
   const [tempMac, setTempMac] = useState('');
   const [tempCustomName, setTempCustomName] = useState('');
   const [tempVms, setTempVms] = useState<{ id: string; name: string; ip: string; isOnline?: boolean }[]>([]);
+  const [tempVlans, setTempVlans] = useState<Record<string, string>>({});
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  }, []);
 
   const [lang, setLang] = useState('en');
   const [t, setT] = useState<Record<string, string>>({});
@@ -185,7 +201,7 @@ export default function App() {
           setEdges(data.edges);
 
           let maxSwitchId = 0;
-          let maxDeviceIds: Record<string, number> = { pc: 0, server: 0, firewall: 0, router: 0, wifi: 0, printer: 0 };
+          let maxDeviceIds: Record<string, number> = { pc: 0, server: 0, firewall: 0, router: 0, wifi: 0, printer: 0, camera: 0, nvr: 0 };
 
           patchedNodes.forEach((n: Node) => {
             if (n.type === 'switch') {
@@ -214,13 +230,13 @@ export default function App() {
     if (!selectedDeviceData) return;
     setNodes(nds => nds.map(n => {
       if (n.id === selectedDeviceData.id) {
-        return { ...n, data: { ...n.data, info: tempInfo, ip: tempIp, mac: tempMac, customName: tempCustomName, vms: tempVms } };
+        return { ...n, data: { ...n.data, info: tempInfo, ip: tempIp, mac: tempMac, customName: tempCustomName, vms: tempVms, vlans: tempVlans } };
       }
       return n;
     }));
-    setSelectedDeviceData(prev => prev ? { ...prev, info: tempInfo, ip: tempIp, mac: tempMac, customName: tempCustomName, vms: tempVms } : null);
+    setSelectedDeviceData(prev => prev ? { ...prev, info: tempInfo, ip: tempIp, mac: tempMac, customName: tempCustomName, vms: tempVms, vlans: tempVlans } : null);
     setIsEditingInfo(false);
-  }, [selectedDeviceData, tempInfo, tempIp, tempMac, tempCustomName, tempVms, setNodes]);
+  }, [selectedDeviceData, tempInfo, tempIp, tempMac, tempCustomName, tempVms, tempVlans, setNodes]);
 
   const deleteSelectedElement = useCallback(() => {
     if (!selectedDeviceData) return;
@@ -272,7 +288,7 @@ export default function App() {
   const [edgesOnTop, setEdgesOnTop] = useState(false);
 
   const switchCounter = useRef(1);
-  const deviceCounters = useRef<Record<string, number>>({ pc: 1, server: 1, firewall: 1, router: 1, wifi: 1, printer: 1 });
+  const deviceCounters = useRef<Record<string, number>>({ pc: 1, server: 1, firewall: 1, router: 1, wifi: 1, printer: 1, camera: 1, nvr: 1 });
 
   const addNode = (type: 'switch' | 'patchpanel' | 'device' | 'group', deviceId: string = 'pc', ports = 24, sfpPorts = 0, fiberPorts = 0, devPorts = 1, devSfpPorts = 0, devUsbPorts = 0, devFiberPorts = 0) => {
     let id, label;
@@ -438,6 +454,11 @@ export default function App() {
         customName: (clickedNode.data.customName as string) || '',
         vms: (clickedNode.data.vms as any[]) || [],
         deviceType: clickedNode.data.deviceType as string,
+        nodeType: clickedNode.type,
+        ports: clickedNode.data.ports as number,
+        sfpPorts: clickedNode.data.sfpPorts as number,
+        fiberPorts: clickedNode.data.fiberPorts as number,
+        vlans: (clickedNode.data.vlans as Record<string, string>) || {},
       });
 
       setIsEditingInfo(false);
@@ -446,6 +467,7 @@ export default function App() {
       setTempMac((clickedNode.data.mac as string) || '');
       setTempCustomName((clickedNode.data.customName as string) || '');
       setTempVms((clickedNode.data.vms as any[]) || []);
+      setTempVlans((clickedNode.data.vlans as Record<string, string>) || {});
 
       setEdges((eds) =>
         eds.map((e) => {
@@ -686,7 +708,7 @@ export default function App() {
 
           // Update highest IDs to continue work after loading save
           let maxSwitchId = 0;
-          let maxDeviceIds: Record<string, number> = { pc: 0, server: 0, firewall: 0, router: 0, wifi: 0, printer: 0 };
+          let maxDeviceIds: Record<string, number> = { pc: 0, server: 0, firewall: 0, router: 0, wifi: 0, printer: 0, camera: 0, nvr: 0 };
 
           data.nodes.forEach((n: Node) => {
             if (n.type === 'switch') {
@@ -707,10 +729,10 @@ export default function App() {
             deviceCounters.current[k] = maxDeviceIds[k] + 1;
           });
         } else {
-          alert('Invalid format for network map file.');
+          showToast(getText('messages.importInvalid'), 'error');
         }
       } catch (err) {
-        alert('Failed to load the file. It is probably corrupted.');
+        showToast(getText('messages.importFailed'), 'error');
       }
     };
     reader.readAsText(file);
@@ -731,49 +753,68 @@ export default function App() {
         body: JSON.stringify(data)
       });
       if (res.ok) {
-        alert('Successfully saved the map to the server!');
+        showToast(getText('messages.saveSuccess'), 'success');
       } else {
-        alert('Server error while saving visualization.');
+        showToast(getText('messages.saveError'), 'error');
       }
     } catch {
-      alert('Failed to connect to the server to save the layout!');
+      showToast(getText('messages.saveFailed'), 'error');
     }
   }, [nodes, edges]);
 
   // Download PNG
   const onDownloadImage = useCallback(() => {
-    if (reactFlowWrapper.current === null) return;
+    if (nodes.length === 0) {
+      showToast(getText('messages.screenshotError'), 'error');
+      return;
+    }
 
-    // We need to remove zoom/pan transformations to take a screenshot of the entire panel
-    // or take a snapshot of the viewport area. Let's take a viewport snapshot
-    const node = reactFlowWrapper.current;
+    const nodesBounds = getNodesBounds(nodes);
 
-    toPng(node, {
-      filter: (node) => {
-        // Ignore minimap UI and controls during screenshot
-        if (node?.classList?.contains('react-flow__minimap') ||
-          node?.classList?.contains('react-flow__controls') ||
-          node?.classList?.contains('react-flow__panel')) {
-          return false;
-        }
-        return true;
+    // Zmniejszamy pustą przestrzeń dookoła do minimum (30px)
+    const padding = 30;
+    const imageWidth = nodesBounds.width + padding * 2;
+    const imageHeight = nodesBounds.height + padding * 2;
+
+    // We take a snapshot of the viewport to capture just the exact mapped elements
+    const viewportElement = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!viewportElement) return;
+
+    showToast('Generowanie obrazu o wysokiej jakości...', 'success');
+
+    toPng(viewportElement, {
+      backgroundColor: '#000000', // Ustawiamy tło eksportu na czyste czarne
+      width: imageWidth,
+      height: imageHeight,
+      pixelRatio: 3, // Daje nam ultra-wysoką jakość na poziomie wektorów bez błędów SVG
+      style: {
+        width: `${imageWidth}px`,
+        height: `${imageHeight}px`,
+        transform: `translate(${-nodesBounds.x + padding}px, ${-nodesBounds.y + padding}px) scale(1)`,
       },
-      backgroundColor: '#0f172a',
     })
-      .then((dataUrl) => {
+      .then((dataUrl: string) => {
         const link = document.createElement('a');
         link.download = 'network-map.png';
         link.href = dataUrl;
         link.click();
+        showToast('Zapisano zrzut ekranu (Wysoka Jakość)!', 'success');
       })
-      .catch((err) => {
-        console.error('Error generating PNG image:', err);
-        alert('Error occurred while generating image snapshot.');
+      .catch((err: Error) => {
+        console.error('Error generating high-res PNG image:', err);
+        showToast(getText('messages.screenshotError'), 'error');
       });
-  }, []);
+  }, [nodes]);
 
   return (
     <div className="w-screen h-[100dvh] flex relative overflow-hidden bg-slate-900">
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[100] px-4 py-3 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex items-center gap-3 font-medium transition-all duration-300 animate-in fade-in slide-in-from-top-6 ${toast.type === 'success' ? 'bg-emerald-900/95 border border-emerald-500/50 text-emerald-100' : 'bg-red-900/95 border border-red-500/50 text-red-100'}`}>
+          {toast.type === 'success' ? <Cloud size={20} className="text-emerald-400" /> : <Info size={20} className="text-red-400" />}
+          {toast.message}
+        </div>
+      )}
 
       {/* Mobile Menu Button */}
       <button
@@ -1261,6 +1302,44 @@ export default function App() {
                           <button onClick={() => setTempVms([...tempVms, { id: Date.now().toString(), name: '', ip: '' }])} className="w-full text-xs font-medium bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 hover:border-indigo-500/40 p-1.5 rounded flex items-center justify-center gap-1 mt-1 transition-colors">
                             <Plus size={14} /> Add VM
                           </button>
+                        </div>
+                      </div>
+                    )}
+                    {(selectedDeviceData.nodeType === 'switch') && (
+                      <div className="flex flex-col gap-1 mt-2 border-t border-slate-700 pt-3">
+                        <label className="text-[10px] text-slate-400 uppercase font-semibold">Port VLANs</label>
+                        <div className="text-[9px] text-slate-500 mb-1 leading-snug">Wpisz ID VLANu (np. "10") lub np. "Trunk". Puste = Domyślny.</div>
+                        <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto stylish-scroll pr-1 mt-1">
+                          {Array.from({ length: selectedDeviceData.ports || 0 }, (_, i) => i + 1).map((portNum) => (
+                            <div key={`rj45-${portNum}`} className="flex flex-col gap-1">
+                              <span className="text-[9px] text-slate-400 text-center font-semibold">Port {portNum}</span>
+                              <input
+                                value={tempVlans[portNum.toString()] || ''}
+                                onChange={(e) => setTempVlans({ ...tempVlans, [portNum.toString()]: e.target.value })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-1 text-center py-1 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors"
+                              />
+                            </div>
+                          ))}
+                          {Array.from({ length: selectedDeviceData.sfpPorts || 0 }, (_, i) => i + 1).map((portNum) => (
+                            <div key={`sfp-${portNum}`} className="flex flex-col gap-1">
+                              <span className="text-[9px] text-indigo-400 text-center font-semibold">S{portNum}</span>
+                              <input
+                                value={tempVlans[`S${portNum}`] || ''}
+                                onChange={(e) => setTempVlans({ ...tempVlans, [`S${portNum}`]: e.target.value })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-1 text-center py-1 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors"
+                              />
+                            </div>
+                          ))}
+                          {Array.from({ length: selectedDeviceData.fiberPorts || 0 }, (_, i) => i + 1).map((portNum) => (
+                            <div key={`fib-${portNum}`} className="flex flex-col gap-1">
+                              <span className="text-[9px] text-fuchsia-400 text-center font-semibold">F{portNum}</span>
+                              <input
+                                value={tempVlans[`F${portNum}`] || ''}
+                                onChange={(e) => setTempVlans({ ...tempVlans, [`F${portNum}`]: e.target.value })}
+                                className="w-full bg-slate-900 border border-slate-600 rounded px-1 text-center py-1 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 transition-colors"
+                              />
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}

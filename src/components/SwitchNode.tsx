@@ -2,10 +2,20 @@ import { memo } from 'react';
 import { Handle, Position, useNodeId, useNodeConnections } from '@xyflow/react';
 import { Server } from 'lucide-react';
 
+const getVlanColor = (vlan: string) => {
+    if (!vlan) return 'transparent';
+    if (vlan.toLowerCase() === 'trunk') return '#a855f7';
+    const colors = ['#f87171', '#fb923c', '#fbbf24', '#a3e635', '#34d399', '#22d3ee', '#818cf8', '#e879f9', '#f43f5e', '#60a5fa'];
+    let hash = 0;
+    for (let i = 0; i < vlan.length; i++) hash = vlan.charCodeAt(i) + ((hash << 5) - hash);
+    return colors[Math.abs(hash) % colors.length];
+};
+
 export default memo(function SwitchNode({ data }: any) {
     const rj45Count = data.ports ?? 8;
     const sfpCount = data.sfpPorts ?? 0;
     const fiberCount = data.fiberPorts ?? 0;
+    const vlans = data.vlans || {};
 
     const nodeId = useNodeId() || '';
     const connections = useNodeConnections({ id: nodeId });
@@ -32,6 +42,8 @@ export default memo(function SwitchNode({ data }: any) {
             : data.highlightedPort === portStr;
 
         const isConnected = connectedPorts.has(portStr);
+        const vlan = vlans[portStr];
+        const vlanColor = vlan ? getVlanColor(vlan) : undefined;
 
         return (
             <div key={portStr} data-port-id={portStr} className="flex flex-col items-center relative group/port">
@@ -58,8 +70,13 @@ export default memo(function SwitchNode({ data }: any) {
                         className="!opacity-0 !absolute !m-0 z-10 cursor-crosshair before:absolute before:-inset-4 before:content-['']"
                     />
                 </div>
-                <span className={`text-[9px] font-mono mt-1 w-full text-center ${isFiber ? 'text-fuchsia-400/80' : 'text-slate-400'}`}>
-                    {isSfp ? `S${portNum - rj45Count}` : isFiber ? `F${portNum - rj45Count - sfpCount}` : portNum}
+                <span className={`flex flex-col items-center text-[9px] font-mono mt-1 w-full text-center ${isFiber ? 'text-fuchsia-400/80' : 'text-slate-400'}`}>
+                    <span>{isSfp ? `S${portNum - rj45Count}` : isFiber ? `F${portNum - rj45Count - sfpCount}` : portNum}</span>
+                    {vlan && (
+                        <div className="text-[7px] font-bold px-1 rounded-[3px] mt-0.5 leading-none py-[2px] border" style={{ backgroundColor: `${vlanColor}20`, color: vlanColor, borderColor: `${vlanColor}50` }}>
+                            {vlan}
+                        </div>
+                    )}
                 </span>
             </div>
         );
